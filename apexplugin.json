@@ -1,6 +1,6 @@
 {
   "name" : "KALC Range Slider",
-  "version" : "1.0",
+  "version" : "1.1",
   "description" : "A range slider plugin for Oracle Apex. Updates Min and Max page items with the visual slider settings",
   "keywords" : ["jQuery", "Slider", "Range", "Apex"],
   "homepage" : "https://github.com/kalconsultancyltd/kalc-range-slider",
