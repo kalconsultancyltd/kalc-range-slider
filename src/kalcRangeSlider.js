@@ -4,7 +4,7 @@
    * Uses jQRangeSlider v5.7.2 (http://ghusse.github.io/jQRangeSlider/)
    * 
    * Contact: kalconsultancyltd@hotmail.com
-   * @version 1
+   * @version 1.1
    * Tested on Oracle Application Express 5.0.4 and Universal Theme
    *
    * @license
@@ -46,11 +46,10 @@
     majorScale,
     minorScale
   ){
-    
     switch(sliderType)
     {
       case 'DATE':
-        // Date sliders can have format DD-MM-YYYY or DD-fmMON-YYYY in version 1
+        // Date sliders can have format DD-MM-YYYY or DD-MON-YYYY in version 1
         var calcSliderMin = new Date(), calcSliderMax = new Date(); // initialise the slider bounds variables as dates
         var monthList = monthLabels.split(',');
         var minPageItemVal = apex.item(minPageItem).getValue(); //get the initial Min marker value from the apex item
@@ -193,6 +192,14 @@
         $('#'+sliderId).parent().parent().on('resize',function(){
           $('#'+sliderId).dateRangeSlider('resize');
         });
+
+        // v1.1 Define a delayed function for resizing the slider after a Universal Theme menu expansion/contraction
+        if($('#t_Button_navControl')){
+          $('#t_Button_navControl').on('click',function(){
+            setTimeout(function(){$('#'+sliderId).dateRangeSlider('resize');}, 200);
+          });
+        }
+
         // Update the apex items when the user changes the slider dependent on the provided date format
         $('#'+sliderId).bind("userValuesChanged", function(e, data){
           var monthList = oraMON.split(',');
@@ -276,6 +283,14 @@
         $('#'+sliderId).parent().parent().on('resize',function(){
           $('#'+sliderId).rangeSlider('resize');
         });
+        
+        // v1.1 Define a delayed function for resizing the slider after a Universal Theme menu expansion/contraction
+        if($('#t_Button_navControl')){
+          $('#t_Button_navControl').on('click',function(){
+            setTimeout(function(){$('#'+sliderId).rangeSlider('resize');}, 200);
+          });
+        }
+
         // Update the apex items when the user changes the slider
         $('#'+sliderId).bind("userValuesChanged", function(e, data){
           apex.item(minPageItem).setValue(data.values.min);
