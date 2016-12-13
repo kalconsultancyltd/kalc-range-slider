@@ -12,7 +12,9 @@
   "author" : {
     "name" : "KAL Consultancy Ltd",
     "email" : "kalconsultancyltd@hotmail.com",
-    "url" : ""
+    "url" : "",
+    "twitter" : "KALConsultancy",
+    "donationUrl" : "https://www.paypal.me/KALACEY/3"
   },
   "repository" : {
     "type" : "git",
