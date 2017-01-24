@@ -14,8 +14,8 @@ begin
 wwv_flow_api.import_begin (
  p_version_yyyy_mm_dd=>'2013.01.01'
 ,p_release=>'5.0.4.00.12'
-,p_default_workspace_id=>12393842309040619664
-,p_default_application_id=>9815
+,p_default_workspace_id=>1234567890
+,p_default_application_id=>101
 ,p_default_owner=>'KELVIN'
 );
 end;
@@ -28,7 +28,7 @@ end;
 prompt --application/shared_components/plugins/item_type/kalc_apex_range_slider
 begin
 wwv_flow_api.create_plugin(
- p_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701575287045718783)
 ,p_plugin_type=>'ITEM TYPE'
 ,p_name=>'KALC.APEX.RANGE.SLIDER'
 ,p_display_name=>'KALC Range Slider'
@@ -49,25 +49,27 @@ wwv_flow_api.create_plugin(
 '  l_month_labels     VARCHAR2(2000) := '''';',
 '  l_ora_months       VARCHAR2(2000) := '''';',
 '  -- Plugin Attribute Values',
-'  l_type             apex_application_page_items.attribute_01%TYPE := p_item.attribute_01; -- Type of slider',
-'  l_date_format      apex_application_page_items.attribute_02%TYPE := p_item.attribute_02; -- Date Format',
-'  l_range_min        apex_application_page_items.attribute_03%TYPE := p_item.attribute_03; -- Range Minimum',
-'  l_range_max        apex_application_page_items.attribute_04%TYPE := p_item.attribute_04; -- Range Maximum',
-'  l_step             apex_application_page_items.attribute_05%TYPE := p_item.attribute_05; -- Range Step for Integer Sliders',
-'  l_decimal_places   apex_application_page_items.attribute_06%TYPE := p_item.attribute_06; -- Decimal Places for DECIMAL sliders',
-'  l_date_step        apex_application_page_items.attribute_07%TYPE := p_item.attribute_07; -- Date Range Step',
-'  l_week_startday    apex_application_page_items.attribute_08%TYPE := p_item.attribute_08; -- Week start day',
-'  l_min_page_item    apex_application_page_items.attribute_09%TYPE := p_item.attribute_09; -- Min Value Page Item',
-'  l_max_page_item    apex_application_page_items.attribute_10%TYPE := p_item.attribute_10; -- Max Value Page Item',
-'  l_ruler            apex_application_page_items.attribute_11%TYPE := p_item.attribute_11; -- Include a Ruler?',
-'  l_major_scale      apex_application_page_items.attribute_12%TYPE := p_item.attribute_12; -- Major scale ticks',
-'  l_minor_scale      apex_application_page_items.attribute_13%TYPE := p_item.attribute_13; -- Minor scale ticks',
-'  l_left_val         NUMBER;',
-'  l_right_val        NUMBER;',
-'  l_int_major_scale  NUMBER;',
-'  l_int_minor_scale  NUMBER;',
-'  l_no_of_steps      NUMBER := 0;   --v1.1',
-'  l_right_pad        NUMBER := 35;  --v1.1 Slider continer padding value (ensures right label is visible)',
+'  l_type                apex_application_page_items.attribute_01%TYPE := p_item.attribute_01; -- Type of slider',
+'  l_date_format         apex_application_page_items.attribute_02%TYPE := p_item.attribute_02; -- Date Format',
+'  l_range_min           apex_application_page_items.attribute_03%TYPE := p_item.attribute_03; -- Range Minimum',
+'  l_range_max           apex_application_page_items.attribute_04%TYPE := p_item.attribute_04; -- Range Maximum',
+'  l_step                apex_application_page_items.attribute_05%TYPE := p_item.attribute_05; -- Range Step for Integer Sliders',
+'  l_format_integer      apex_application_page_items.attribute_06%TYPE := p_item.attribute_06; -- Format the Integer Y/N  v1.2',
+'  l_thousand_separator  VARCHAR2(1)                                   := '','';                 -- NLS thousand separator  v1.2',
+'  l_date_step           apex_application_page_items.attribute_07%TYPE := p_item.attribute_07; -- Date Range Step',
+'  l_week_startday       apex_application_page_items.attribute_08%TYPE := p_item.attribute_08; -- Week start day',
+'  l_min_page_item       apex_application_page_items.attribute_09%TYPE := p_item.attribute_09; -- Min Value Page Item',
+'  l_max_page_item       apex_application_page_items.attribute_10%TYPE := p_item.attribute_10; -- Max Value Page Item',
+'  l_ruler               apex_application_page_items.attribute_11%TYPE := p_item.attribute_11; -- Include a Ruler?',
+'  l_major_scale         apex_application_page_items.attribute_12%TYPE := p_item.attribute_12; -- Major scale ticks',
+'  l_minor_scale         apex_application_page_items.attribute_13%TYPE := p_item.attribute_13; -- Minor scale ticks',
+'  l_exclude_min_width   apex_application_page_items.attribute_15%TYPE := p_item.attribute_15; -- Exclude Minimum Width  v1.2',
+'  l_left_val            NUMBER;',
+'  l_right_val           NUMBER;',
+'  l_int_major_scale     NUMBER;',
+'  l_int_minor_scale     NUMBER;',
+'  l_no_of_steps         NUMBER := 0;   --v1.1',
+'  l_right_pad           NUMBER := 35;  --v1.1 Slider container padding value (ensures right label is visible)',
 'BEGIN',
 '  -- Debug this item if running in debug mode',
 '  IF apex_application.g_debug THEN',
@@ -77,6 +79,16 @@ wwv_flow_api.create_plugin(
 '                                      p_is_readonly         => p_is_readonly,',
 '                                      p_is_printer_friendly => p_is_printer_friendly );',
 '  END IF;',
+'  -- Get NLS thousand separator',
+'  BEGIN',
+'    SELECT SUBSTR(value,2)',
+'    INTO   l_thousand_separator',
+'    FROM   nls_session_parameters',
+'    WHERE  parameter = ''NLS_NUMERIC_CHARACTERS'';',
+'  EXCEPTION',
+'    WHEN no_data_found THEN',
+'      l_thousand_separator := '','';',
+'  END;',
 '  -- Create a div element to turn into the slider',
 '  sys.htp.p( ''<div id="''||l_slider_id||''"></div>'' );',
 '  --',
@@ -96,21 +108,33 @@ wwv_flow_api.create_plugin(
 '  IF l_type = ''DATE'' THEN',
 '    l_no_of_steps := TO_DATE(l_range_max, l_date_format)-TO_DATE(l_range_min, l_date_format)+1;',
 '    IF l_date_format = ''DD-MON-YYYY'' THEN',
-'      l_no_of_steps := l_no_of_steps + 130;',
-'      apex_css.add( p_css => ''#''||l_slider_id||'' {width: 100%; min-width: ''||l_no_of_steps||''px; margin: 0px 65px;}'');',
+'      IF l_exclude_min_width = ''N'' THEN',
+'        l_no_of_steps := l_no_of_steps + 130;',
+'        apex_css.add( p_css => ''#''||l_slider_id||'' {width: 100%; min-width: ''||l_no_of_steps||''px; margin: 0px 65px;}'');',
+'      ELSE',
+'        apex_css.add( p_css => ''#''||l_slider_id||'' {width: 100%; min-width: 131px; margin: 0px 65px;}'');',
+'      END IF;',
 '      -- v1.1 Pad the right of the slider container to keep labels visible',
 '      l_right_pad := l_right_pad + 65;',
 '      apex_css.add( p_css => ''#''||UPPER(p_item.name)||''_CONTAINER > div.t-Form-inputContainer {padding-right: ''||l_right_pad||''px;}'');',
 '    ELSE',
-'      l_no_of_steps := l_no_of_steps + 90;',
-'      apex_css.add( p_css => ''#''||l_slider_id||'' {width: 100%; min-width: ''||l_no_of_steps||''px; margin: 0px 45px;}'');',
+'      IF l_exclude_min_width = ''N'' THEN',
+'        l_no_of_steps := l_no_of_steps + 90;',
+'        apex_css.add( p_css => ''#''||l_slider_id||'' {width: 100%; min-width: ''||l_no_of_steps||''px; margin: 0px 45px;}'');',
+'      ELSE',
+'        apex_css.add( p_css => ''#''||l_slider_id||'' {width: 100%; min-width: 91px; margin: 0px 45px;}'');',
+'      END IF;',
 '      -- v1.1 Pad the right of the slider container to keep labels visible',
 '      l_right_pad := l_right_pad + 45;',
 '      apex_css.add( p_css => ''#''||UPPER(p_item.name)||''_CONTAINER > div.t-Form-inputContainer {padding-right: ''||l_right_pad||''px;}'');',
 '    END IF;',
 '  ELSE',
 '    l_no_of_steps := TRUNC(TRUNC(TO_NUMBER(l_range_max))-TRUNC(TO_NUMBER(l_range_min))/NVL(l_step,1))+1+30;',
-'    apex_css.add( p_css => ''#''||l_slider_id||'' {width: 100%; min-width: ''||l_no_of_steps||''px; margin: 0px 15px;}'');',
+'    IF l_exclude_min_width = ''N'' THEN',
+'      apex_css.add( p_css => ''#''||l_slider_id||'' {width: 100%; min-width: ''||l_no_of_steps||''px; margin: 0px 15px;}'');',
+'    ELSE',
+'      apex_css.add( p_css => ''#''||l_slider_id||'' {width: 100%; min-width: 31px; margin: 0px 15px;}'');',
+'    END IF;',
 '    -- v1.1 Pad the right of the slider container to keep labels visible',
 '    l_right_pad := l_right_pad + 10;',
 '    apex_css.add( p_css => ''#''||UPPER(p_item.name)||''_CONTAINER > div.t-Form-inputContainer {padding-right: ''||l_right_pad||''px;}'');',
@@ -147,7 +171,8 @@ wwv_flow_api.create_plugin(
 '          WHEN l_type = ''DATE''    THEN apex_javascript.add_value(l_date_step, TRUE)',
 '        END ||',
 '        apex_javascript.add_value(l_week_startday, TRUE) ||',
-'        apex_javascript.add_value(l_decimal_places, TRUE) || -- future proofing for DECIMAL sliders. Not available in version 1.1',
+'        apex_javascript.add_value(l_format_integer, TRUE) ||',
+'        apex_javascript.add_value(l_thousand_separator, TRUE) ||',
 '        apex_javascript.add_value(l_min_page_item, TRUE) ||',
 '        apex_javascript.add_value(l_max_page_item, TRUE) ||',
 '        apex_javascript.add_value(l_ruler, TRUE) ||',
@@ -171,15 +196,15 @@ wwv_flow_api.create_plugin(
 ,p_subscribe_plugin_settings=>true
 ,p_help_text=>wwv_flow_utilities.join(wwv_flow_t_varchar2(
 'Displays a Range Slider - Options are Integer or Date range sliders<br />',
-'Requires two page items that will be updated when the slider values are changed by the end user<br />',
+'Requires at a minimum, two page items that will be updated when the slider values are changed by the end user<br />',
 'Only available for Desktop themes'))
-,p_version_identifier=>'1.1'
+,p_version_identifier=>'1.2'
 ,p_about_url=>'https://github.com/kalconsultancyltd/kalc-range-slider'
-,p_files_version=>165
+,p_files_version=>177
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(93692986760433674098)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701628837664014255)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>1
 ,p_display_sequence=>10
@@ -195,22 +220,22 @@ wwv_flow_api.create_plugin_attribute(
 'Version 1 supports INTEGER or DATE range sliders'))
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(93692987045644675832)
-,p_plugin_attribute_id=>wwv_flow_api.id(93692986760433674098)
+ p_id=>wwv_flow_api.id(93701629122875015989)
+,p_plugin_attribute_id=>wwv_flow_api.id(93701628837664014255)
 ,p_display_sequence=>10
 ,p_display_value=>'Integer'
 ,p_return_value=>'INTEGER'
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(93692987903771677160)
-,p_plugin_attribute_id=>wwv_flow_api.id(93692986760433674098)
+ p_id=>wwv_flow_api.id(93701629981002017317)
+,p_plugin_attribute_id=>wwv_flow_api.id(93701628837664014255)
 ,p_display_sequence=>30
 ,p_display_value=>'Date'
 ,p_return_value=>'DATE'
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(93693171168074080266)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701813245304420423)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>2
 ,p_display_sequence=>20
@@ -220,7 +245,7 @@ wwv_flow_api.create_plugin_attribute(
 ,p_default_value=>'DD-MM-YYYY'
 ,p_supported_ui_types=>'DESKTOP'
 ,p_is_translatable=>false
-,p_depending_on_attribute_id=>wwv_flow_api.id(93692986760433674098)
+,p_depending_on_attribute_id=>wwv_flow_api.id(93701628837664014255)
 ,p_depending_on_condition_type=>'EQUALS'
 ,p_depending_on_expression=>'DATE'
 ,p_lov_type=>'STATIC'
@@ -234,22 +259,22 @@ wwv_flow_api.create_plugin_attribute(
 'This helps visually when using a non english language e.g. FRENCH<br />'))
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(93693180204251176724)
-,p_plugin_attribute_id=>wwv_flow_api.id(93693171168074080266)
+ p_id=>wwv_flow_api.id(93701822281481516881)
+,p_plugin_attribute_id=>wwv_flow_api.id(93701813245304420423)
 ,p_display_sequence=>10
 ,p_display_value=>'DD-MM-YYYY'
 ,p_return_value=>'DD-MM-YYYY'
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(93693180596024178416)
-,p_plugin_attribute_id=>wwv_flow_api.id(93693171168074080266)
+ p_id=>wwv_flow_api.id(93701822673254518573)
+,p_plugin_attribute_id=>wwv_flow_api.id(93701813245304420423)
 ,p_display_sequence=>20
 ,p_display_value=>'DD-MON-YYYY'
 ,p_return_value=>'DD-MON-YYYY'
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(93692992362056200057)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701634439286540214)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>3
 ,p_display_sequence=>30
@@ -279,8 +304,8 @@ wwv_flow_api.create_plugin_attribute(
 'If using a Date range slider ensure that the date format of the substitution is the same as selected'))
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(93692992653266202413)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701634730496542570)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>4
 ,p_display_sequence=>40
@@ -310,8 +335,8 @@ wwv_flow_api.create_plugin_attribute(
 'If using a Date range slider ensure that the date format of the substitution is the same as selected'))
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(93692993010350212215)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701635087580552372)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>5
 ,p_display_sequence=>50
@@ -320,34 +345,38 @@ wwv_flow_api.create_plugin_attribute(
 ,p_is_required=>false
 ,p_supported_ui_types=>'DESKTOP'
 ,p_is_translatable=>false
-,p_depending_on_attribute_id=>wwv_flow_api.id(93692986760433674098)
+,p_depending_on_attribute_id=>wwv_flow_api.id(93701628837664014255)
 ,p_depending_on_condition_type=>'EQUALS'
 ,p_depending_on_expression=>'INTEGER'
 ,p_help_text=>'Define the Step value for the Integer slider values (defaults to 1)'
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(93693086870920195668)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701728948150535825)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>6
 ,p_display_sequence=>60
-,p_prompt=>'Decimal Places'
-,p_attribute_type=>'INTEGER'
+,p_prompt=>'Format Integer'
+,p_attribute_type=>'CHECKBOX'
 ,p_is_required=>false
+,p_default_value=>'N'
 ,p_supported_ui_types=>'DESKTOP'
 ,p_is_translatable=>false
-,p_depending_on_attribute_id=>wwv_flow_api.id(93692986760433674098)
+,p_depending_on_attribute_id=>wwv_flow_api.id(93701628837664014255)
 ,p_depending_on_condition_type=>'EQUALS'
-,p_depending_on_expression=>'DECIMAL'
+,p_depending_on_expression=>'INTEGER'
 ,p_help_text=>wwv_flow_utilities.join(wwv_flow_t_varchar2(
-'Enter the number of decimal places required<br />',
-'You must enter an integer of 1 or greater<br />',
+'Format the integer with NLS thousand seperators?<br />',
 '<br />',
-'Note: This is a Placeholder for a potential future Range Slider Type of "DECIMAL". Not available in version 1'))
+'For use with numbers greater than 999<br />',
+'Example: 1234567<br />',
+'If set to Y then the left and right handle will show the number as 1,234,567 rather than 1234567<br />',
+'<br />',
+'Note: The scale labels will also be formatted in this manner (999G999G999G999G999) - the database NLS thousand separator will used'))
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(93693056394820023995)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701698472050364152)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>7
 ,p_display_sequence=>70
@@ -357,36 +386,36 @@ wwv_flow_api.create_plugin_attribute(
 ,p_default_value=>'days'
 ,p_supported_ui_types=>'DESKTOP'
 ,p_is_translatable=>false
-,p_depending_on_attribute_id=>wwv_flow_api.id(93692986760433674098)
+,p_depending_on_attribute_id=>wwv_flow_api.id(93701628837664014255)
 ,p_depending_on_condition_type=>'EQUALS'
 ,p_depending_on_expression=>'DATE'
 ,p_lov_type=>'STATIC'
 ,p_help_text=>'Select an appropriate date range slider step'
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(93693151255616100646)
-,p_plugin_attribute_id=>wwv_flow_api.id(93693056394820023995)
+ p_id=>wwv_flow_api.id(93701793332846440803)
+,p_plugin_attribute_id=>wwv_flow_api.id(93701698472050364152)
 ,p_display_sequence=>10
 ,p_display_value=>'Days'
 ,p_return_value=>'days'
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(93693057096712028040)
-,p_plugin_attribute_id=>wwv_flow_api.id(93693056394820023995)
+ p_id=>wwv_flow_api.id(93701699173942368197)
+,p_plugin_attribute_id=>wwv_flow_api.id(93701698472050364152)
 ,p_display_sequence=>20
 ,p_display_value=>'Months'
 ,p_return_value=>'months'
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(93693057447787028807)
-,p_plugin_attribute_id=>wwv_flow_api.id(93693056394820023995)
+ p_id=>wwv_flow_api.id(93701699525017368964)
+,p_plugin_attribute_id=>wwv_flow_api.id(93701698472050364152)
 ,p_display_sequence=>30
 ,p_display_value=>'Weeks'
 ,p_return_value=>'weeks'
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(93693112815147758687)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701754892378098844)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>8
 ,p_display_sequence=>80
@@ -396,7 +425,7 @@ wwv_flow_api.create_plugin_attribute(
 ,p_default_value=>'1'
 ,p_supported_ui_types=>'DESKTOP'
 ,p_is_translatable=>false
-,p_depending_on_attribute_id=>wwv_flow_api.id(93692986760433674098)
+,p_depending_on_attribute_id=>wwv_flow_api.id(93701628837664014255)
 ,p_depending_on_condition_type=>'EQUALS'
 ,p_depending_on_expression=>'DATE'
 ,p_lov_type=>'STATIC'
@@ -407,57 +436,57 @@ wwv_flow_api.create_plugin_attribute(
 'Any date value for the left and right markers or when using a "scale" of week - markers are moved to this day of the week'))
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(93693113039034769224)
-,p_plugin_attribute_id=>wwv_flow_api.id(93693112815147758687)
+ p_id=>wwv_flow_api.id(93701755116265109381)
+,p_plugin_attribute_id=>wwv_flow_api.id(93701754892378098844)
 ,p_display_sequence=>10
 ,p_display_value=>'Sunday'
 ,p_return_value=>'0'
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(93693113509878769730)
-,p_plugin_attribute_id=>wwv_flow_api.id(93693112815147758687)
+ p_id=>wwv_flow_api.id(93701755587109109887)
+,p_plugin_attribute_id=>wwv_flow_api.id(93701754892378098844)
 ,p_display_sequence=>20
 ,p_display_value=>'Monday'
 ,p_return_value=>'1'
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(93693113916113770288)
-,p_plugin_attribute_id=>wwv_flow_api.id(93693112815147758687)
+ p_id=>wwv_flow_api.id(93701755993344110445)
+,p_plugin_attribute_id=>wwv_flow_api.id(93701754892378098844)
 ,p_display_sequence=>30
 ,p_display_value=>'Tuesday'
 ,p_return_value=>'2'
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(93693114316301770929)
-,p_plugin_attribute_id=>wwv_flow_api.id(93693112815147758687)
+ p_id=>wwv_flow_api.id(93701756393532111086)
+,p_plugin_attribute_id=>wwv_flow_api.id(93701754892378098844)
 ,p_display_sequence=>40
 ,p_display_value=>'Wednesday'
 ,p_return_value=>'3'
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(93693114701725771448)
-,p_plugin_attribute_id=>wwv_flow_api.id(93693112815147758687)
+ p_id=>wwv_flow_api.id(93701756778956111605)
+,p_plugin_attribute_id=>wwv_flow_api.id(93701754892378098844)
 ,p_display_sequence=>50
 ,p_display_value=>'Thursday'
 ,p_return_value=>'4'
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(93693115113174772091)
-,p_plugin_attribute_id=>wwv_flow_api.id(93693112815147758687)
+ p_id=>wwv_flow_api.id(93701757190405112248)
+,p_plugin_attribute_id=>wwv_flow_api.id(93701754892378098844)
 ,p_display_sequence=>60
 ,p_display_value=>'Friday'
 ,p_return_value=>'5'
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(93693115431257773263)
-,p_plugin_attribute_id=>wwv_flow_api.id(93693112815147758687)
+ p_id=>wwv_flow_api.id(93701757508488113420)
+,p_plugin_attribute_id=>wwv_flow_api.id(93701754892378098844)
 ,p_display_sequence=>70
 ,p_display_value=>'Saturday'
 ,p_return_value=>'6'
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(93693003355666414591)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701645432896754748)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>9
 ,p_display_sequence=>90
@@ -472,8 +501,8 @@ wwv_flow_api.create_plugin_attribute(
 'If using a Date range slider ensure that the date format of the page item is the same as the plugin selected date format'))
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(93693003686177417176)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701645763407757333)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>10
 ,p_display_sequence=>100
@@ -488,8 +517,8 @@ wwv_flow_api.create_plugin_attribute(
 'If using a Date range slider ensure that the date format of the page item is the same as the plugin selected date format'))
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(93693001162507319587)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701643239737659744)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>11
 ,p_display_sequence=>110
@@ -505,8 +534,8 @@ wwv_flow_api.create_plugin_attribute(
 'Date Range sliders only currently support a Major scale'))
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(93693063791781101229)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701705869011441386)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>12
 ,p_display_sequence=>120
@@ -515,7 +544,7 @@ wwv_flow_api.create_plugin_attribute(
 ,p_is_required=>false
 ,p_supported_ui_types=>'DESKTOP'
 ,p_is_translatable=>false
-,p_depending_on_attribute_id=>wwv_flow_api.id(93693001162507319587)
+,p_depending_on_attribute_id=>wwv_flow_api.id(93701643239737659744)
 ,p_depending_on_condition_type=>'EQUALS'
 ,p_depending_on_expression=>'Y'
 ,p_help_text=>wwv_flow_utilities.join(wwv_flow_t_varchar2(
@@ -527,8 +556,8 @@ wwv_flow_api.create_plugin_attribute(
 'Month labels will be of "fmMon" oracle format regardless of the plugin selected date format'))
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(93693064100520102873)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701706177750443030)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>13
 ,p_display_sequence=>130
@@ -537,7 +566,7 @@ wwv_flow_api.create_plugin_attribute(
 ,p_is_required=>false
 ,p_supported_ui_types=>'DESKTOP'
 ,p_is_translatable=>false
-,p_depending_on_attribute_id=>wwv_flow_api.id(93693001162507319587)
+,p_depending_on_attribute_id=>wwv_flow_api.id(93701643239737659744)
 ,p_depending_on_condition_type=>'EQUALS'
 ,p_depending_on_expression=>'Y'
 ,p_help_text=>wwv_flow_utilities.join(wwv_flow_t_varchar2(
@@ -546,6 +575,91 @@ wwv_flow_api.create_plugin_attribute(
 'For Integer sliders - enter an integer value. The minor scale must be smaller than the major scale',
 '<br />',
 'Note: A minor scale is not (currently) implemented for a Date Range Slider and any value placed here will be ignored'))
+);
+wwv_flow_api.create_plugin_attribute(
+ p_id=>wwv_flow_api.id(1698230387966596)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
+,p_attribute_scope=>'COMPONENT'
+,p_attribute_sequence=>15
+,p_display_sequence=>150
+,p_prompt=>'Exclude Min WIdth'
+,p_attribute_type=>'CHECKBOX'
+,p_is_required=>false
+,p_default_value=>'N'
+,p_supported_ui_types=>'DESKTOP'
+,p_is_translatable=>false
+,p_help_text=>wwv_flow_utilities.join(wwv_flow_t_varchar2(
+'By default, a minimum width is defined for the slider that represents a single pixel per "step"<br />',
+'This ensures that all values within the range are selectable via the UI<br />',
+'This option allows you to exclude this minimum width where you have a very large range - be aware that not all values will be selectable through the UI'))
+);
+end;
+/
+begin
+wwv_flow_api.g_varchar2_table := wwv_flow_api.empty_varchar2_table;
+wwv_flow_api.g_varchar2_table(1) := '2166756E6374696F6E28652C74297B6B616C635F72616E67655F736C696465725F73746172743D66756E6374696F6E28612C6E2C722C732C692C6F2C752C6C2C672C702C632C642C442C662C682C6D297B737769746368286E297B636173652244415445';
+wwv_flow_api.g_varchar2_table(2) := '223A76617220493D6E657720446174652C783D6E657720446174652C593D732E73706C697428222C22292C4D3D617065782E6974656D2864292E67657456616C756528292C623D617065782E6974656D2844292E67657456616C756528292C773D706172';
+wwv_flow_api.g_varchar2_table(3) := '7365496E74284D2E737562737472696E6728302C3229292C6B3D7061727365496E7428622E737562737472696E6728302C3229293B7377697463682872297B636173652244442D4D4F4E2D59595959223A6C656674446174654D6F6E74683D592E696E64';
+wwv_flow_api.g_varchar2_table(4) := '65784F66284D2E737562737472696E6728332C34292E746F55707065724361736528292B4D2E737562737472696E6728342C4D2E696E6465784F6628222D222C3329292E746F4C6F776572436173652829292C6C65667444617465596561723D70617273';
+wwv_flow_api.g_varchar2_table(5) := '65496E74284D2E736C696365284D2E696E6465784F6628222D222C33292B3129292C7269676874446174654D6F6E74683D592E696E6465784F6628622E737562737472696E6728332C34292E746F55707065724361736528292B622E737562737472696E';
+wwv_flow_api.g_varchar2_table(6) := '6728342C622E696E6465784F6628222D222C3329292E746F4C6F776572436173652829292C726967687444617465596561723D7061727365496E7428622E736C69636528622E696E6465784F6628222D222C33292B3129293B627265616B3B6465666175';
+wwv_flow_api.g_varchar2_table(7) := '6C743A6C656674446174654D6F6E74683D7061727365496E74284D2E737562737472696E6728332C3529292D312C6C65667444617465596561723D7061727365496E74284D2E736C696365283629292C7269676874446174654D6F6E74683D7061727365';
+wwv_flow_api.g_varchar2_table(8) := '496E7428622E737562737472696E6728332C3529292D312C726967687444617465596561723D7061727365496E7428622E736C696365283629297D76617220763D6E65772044617465286C65667444617465596561722C6C656674446174654D6F6E7468';
+wwv_flow_api.g_varchar2_table(9) := '2C77292C533D6E6577204461746528726967687444617465596561722C7269676874446174654D6F6E74682C6B293B6966286C213D742973776974636828493D6F2C783D752C6C297B63617365226D6F6E746873223A492E736574446174652831292C78';
+wwv_flow_api.g_varchar2_table(10) := '2E7365744D6F6E746828752E6765744D6F6E746828292B31292C782E736574446174652831293B627265616B3B63617365227765656B73223A492E73657444617465286F2E6765744461746528292B28672D6F2E676574446179282929292C782E736574';
+wwv_flow_api.g_varchar2_table(11) := '4461746528752E6765744461746528292B28672D752E67657444617928292B3729297D656C736520493D6F2C783D753B73776974636828225922213D667C7C683D3D747C7C2264617922213D682626226D6F6E746822213D682626227765656B22213D68';
+wwv_flow_api.g_varchar2_table(12) := '3F65282223222B61292E6461746552616E6765536C69646572287B626F756E64733A7B6D696E3A492C6D61783A787D2C64656661756C7456616C7565733A7B6D696E3A762C6D61783A537D2C666F726D61747465723A66756E6374696F6E2865297B7661';
+wwv_flow_api.g_varchar2_table(13) := '7220742C612C6E3D732E73706C697428222C22292C693D22222B652E67657446756C6C5965617228293B73776974636828743D652E6765744461746528293C31303F2230222B652E6765744461746528293A22222B652E6765744461746528292C613D65';
+wwv_flow_api.g_varchar2_table(14) := '2E6765744D6F6E746828293C393F2230222B28652E6765744D6F6E746828292B31293A22222B28652E6765744D6F6E746828292B31292C72297B636173652244442D4D4F4E2D59595959223A72657475726E20742B222D222B6E5B7061727365496E7428';
+wwv_flow_api.g_varchar2_table(15) := '61292D315D2B222D222B693B64656661756C743A72657475726E20742B222D222B612B222D222B697D7D7D293A65282223222B61292E6461746552616E6765536C69646572287B626F756E64733A7B6D696E3A492C6D61783A787D2C64656661756C7456';
+wwv_flow_api.g_varchar2_table(16) := '616C7565733A7B6D696E3A762C6D61783A537D2C7363616C65733A5B7B66697273743A66756E6374696F6E2865297B76617220743D6E657720446174652865293B73776974636828742E736574486F75727328302C302C302C30292C68297B6361736522';
+wwv_flow_api.g_varchar2_table(17) := '6D6F6E7468223A742E736574446174652831293B627265616B3B63617365227765656B223A742E7365744461746528742E6765744461746528292B28672D742E676574446179282929297D72657475726E20747D2C656E643A66756E6374696F6E286529';
+wwv_flow_api.g_varchar2_table(18) := '7B72657475726E20657D2C6E6578743A66756E6374696F6E2865297B76617220743D6E657720446174652865293B73776974636828742E736574486F75727328302C302C302C30292C68297B6361736522646179223A742E7365744461746528742E6765';
+wwv_flow_api.g_varchar2_table(19) := '744461746528292B31293B627265616B3B63617365226D6F6E7468223A742E7365744D6F6E746828742E6765744D6F6E746828292B31292C742E736574446174652831293B627265616B3B63617365227765656B223A742E7365744461746528742E6765';
+wwv_flow_api.g_varchar2_table(20) := '744461746528292B37297D72657475726E20747D2C6C6162656C3A66756E6374696F6E2865297B76617220742C613D6E657720446174652865293B7377697463682868297B6361736522646179223A743D612E6765744461746528293C31303F2230222B';
+wwv_flow_api.g_varchar2_table(21) := '612E6765744461746528293A22222B612E6765744461746528293B627265616B3B63617365226D6F6E7468223A743D595B612E6765744D6F6E746828295D3B627265616B3B63617365227765656B223A743D612E6765744461746528293C31303F223022';
+wwv_flow_api.g_varchar2_table(22) := '2B612E6765744461746528293A22222B612E6765744461746528297D72657475726E20747D7D5D2C666F726D61747465723A66756E6374696F6E2865297B76617220742C612C6E3D732E73706C697428222C22292C693D22222B652E67657446756C6C59';
+wwv_flow_api.g_varchar2_table(23) := '65617228293B73776974636828743D652E6765744461746528293C31303F2230222B652E6765744461746528293A22222B652E6765744461746528292C613D652E6765744D6F6E746828293C393F2230222B28652E6765744D6F6E746828292B31293A22';
+wwv_flow_api.g_varchar2_table(24) := '222B28652E6765744D6F6E746828292B31292C72297B636173652244442D4D4F4E2D59595959223A72657475726E20742B222D222B6E5B7061727365496E742861292D315D2B222D222B693B64656661756C743A72657475726E20742B222D222B612B22';
+wwv_flow_api.g_varchar2_table(25) := '2D222B697D7D7D292C6C297B636173652264617973223A65282223222B61292E6461746552616E6765536C6964657228226F7074696F6E222C2273746570222C7B646179733A317D293B627265616B3B63617365226D6F6E746873223A65282223222B61';
+wwv_flow_api.g_varchar2_table(26) := '292E6461746552616E6765536C6964657228226F7074696F6E222C2273746570222C7B6D6F6E7468733A317D293B627265616B3B63617365227765656B73223A65282223222B61292E6461746552616E6765536C6964657228226F7074696F6E222C2273';
+wwv_flow_api.g_varchar2_table(27) := '746570222C7B7765656B733A317D297D65282223222B61292E706172656E7428292E706172656E7428292E6F6E2822726573697A65222C66756E6374696F6E28297B65282223222B61292E6461746552616E6765536C696465722822726573697A652229';
+wwv_flow_api.g_varchar2_table(28) := '7D292C65282223745F427574746F6E5F6E6176436F6E74726F6C2229262665282223745F427574746F6E5F6E6176436F6E74726F6C22292E6F6E2822636C69636B222C66756E6374696F6E28297B73657454696D656F75742866756E6374696F6E28297B';
+wwv_flow_api.g_varchar2_table(29) := '65282223222B61292E6461746552616E6765536C696465722822726573697A6522297D2C323030297D292C65282223222B61292E62696E6428227573657256616C7565734368616E676564222C66756E6374696F6E28652C74297B76617220612C6E2C73';
+wwv_flow_api.g_varchar2_table(30) := '2C6F2C753D692E73706C697428222C22292C6C3D742E76616C7565732E6D696E2C673D22222B6C2E67657446756C6C5965617228293B613D6C2E6765744461746528293C31303F2230222B6C2E6765744461746528293A22222B6C2E6765744461746528';
+wwv_flow_api.g_varchar2_table(31) := '292C6E3D6C2E6765744D6F6E746828293C393F2230222B286C2E6765744D6F6E746828292B31293A22222B286C2E6765744D6F6E746828292B31293B76617220703D742E76616C7565732E6D61782C633D22222B702E67657446756C6C5965617228293B';
+wwv_flow_api.g_varchar2_table(32) := '73776974636828733D702E6765744461746528293C31303F2230222B702E6765744461746528293A22222B702E6765744461746528292C6F3D702E6765744D6F6E746828293C393F2230222B28702E6765744D6F6E746828292B31293A22222B28702E67';
+wwv_flow_api.g_varchar2_table(33) := '65744D6F6E746828292B31292C72297B636173652244442D4D4F4E2D59595959223A617065782E6974656D2864292E73657456616C756528612B222D222B755B7061727365496E74286E292D315D2E746F55707065724361736528292B222D222B67292C';
+wwv_flow_api.g_varchar2_table(34) := '617065782E6974656D2844292E73657456616C756528732B222D222B755B7061727365496E74286F292D315D2E746F55707065724361736528292B222D222B63293B627265616B3B64656661756C743A617065782E6974656D2864292E73657456616C75';
+wwv_flow_api.g_varchar2_table(35) := '6528612B222D222B6E2B222D222B67292C617065782E6974656D2844292E73657456616C756528732B222D222B6F2B222D222B63297D7D293B627265616B3B6361736522494E5445474552223A76617220563D7061727365496E7428617065782E697465';
+wwv_flow_api.g_varchar2_table(36) := '6D2864292E67657456616C75652829293B56213D7426264E614E213D567C7C28563D7061727365496E74286F29293B766172204E3D7061727365496E7428617065782E6974656D2844292E67657456616C75652829293B4E213D7426264E614E213D4E7C';
+wwv_flow_api.g_varchar2_table(37) := '7C284E3D7061727365496E74287529292C2259223D3D663F68213D7426264E614E213D7061727365496E7428682926266D213D7426264E614E213D7061727365496E74286D293F65282223222B61292E72616E6765536C69646572287B626F756E64733A';
+wwv_flow_api.g_varchar2_table(38) := '7B6D696E3A7061727365496E74286F292C6D61783A7061727365496E742875297D2C64656661756C7456616C7565733A7B6D696E3A562C6D61783A4E7D2C7363616C65733A5B7B66697273743A66756E6374696F6E2865297B72657475726E20657D2C6E';
+wwv_flow_api.g_varchar2_table(39) := '6578743A66756E6374696F6E2865297B72657475726E20652B7061727365496E742868297D2C73746F703A66756E6374696F6E2865297B72657475726E21317D2C6C6162656C3A66756E6374696F6E2865297B72657475726E2259223D3D703F652E746F';
+wwv_flow_api.g_varchar2_table(40) := '537472696E6728292E7265706C616365282F5C42283F3D285C647B337D292B283F215C6429292F672C63293A657D7D2C7B66697273743A66756E6374696F6E2865297B72657475726E20657D2C6E6578743A66756E6374696F6E2865297B72657475726E';
+wwv_flow_api.g_varchar2_table(41) := '2065257061727365496E742868293D3D3D7061727365496E742868292D313F652B287061727365496E74286D292B31293A652B7061727365496E74286D297D2C73746F703A66756E6374696F6E2865297B72657475726E21317D2C6C6162656C3A66756E';
+wwv_flow_api.g_varchar2_table(42) := '6374696F6E28297B72657475726E206E756C6C7D7D5D2C666F726D61747465723A66756E6374696F6E2865297B72657475726E2259223D3D703F4D6174682E726F756E642865292E746F537472696E6728292E7265706C616365282F5C42283F3D285C64';
+wwv_flow_api.g_varchar2_table(43) := '7B337D292B283F215C6429292F672C63293A657D7D293A68213D7426264E614E213D7061727365496E74286829262665282223222B61292E72616E6765536C69646572287B626F756E64733A7B6D696E3A7061727365496E74286F292C6D61783A706172';
+wwv_flow_api.g_varchar2_table(44) := '7365496E742875297D2C64656661756C7456616C7565733A7B6D696E3A562C6D61783A4E7D2C7363616C65733A5B7B66697273743A66756E6374696F6E2865297B72657475726E20657D2C6E6578743A66756E6374696F6E2865297B72657475726E2065';
+wwv_flow_api.g_varchar2_table(45) := '2B7061727365496E742868297D2C73746F703A66756E6374696F6E2865297B72657475726E21317D2C6C6162656C3A66756E6374696F6E2865297B72657475726E2259223D3D703F652E746F537472696E6728292E7265706C616365282F5C42283F3D28';
+wwv_flow_api.g_varchar2_table(46) := '5C647B337D292B283F215C6429292F672C63293A657D7D5D2C666F726D61747465723A66756E6374696F6E2865297B72657475726E2259223D3D703F4D6174682E726F756E642865292E746F537472696E6728292E7265706C616365282F5C42283F3D28';
+wwv_flow_api.g_varchar2_table(47) := '5C647B337D292B283F215C6429292F672C63293A657D7D293A65282223222B61292E72616E6765536C69646572287B626F756E64733A7B6D696E3A7061727365496E74286F292C6D61783A7061727365496E742875297D2C64656661756C7456616C7565';
+wwv_flow_api.g_varchar2_table(48) := '733A7B6D696E3A562C6D61783A4E7D7D292C6C26262222213D6C262665282223222B61292E72616E6765536C6964657228226F7074696F6E222C2273746570222C7061727365496E74286C29292C65282223222B61292E706172656E7428292E70617265';
+wwv_flow_api.g_varchar2_table(49) := '6E7428292E6F6E2822726573697A65222C66756E6374696F6E28297B65282223222B61292E72616E6765536C696465722822726573697A6522297D292C65282223745F427574746F6E5F6E6176436F6E74726F6C2229262665282223745F427574746F6E';
+wwv_flow_api.g_varchar2_table(50) := '5F6E6176436F6E74726F6C22292E6F6E2822636C69636B222C66756E6374696F6E28297B73657454696D656F75742866756E6374696F6E28297B65282223222B61292E72616E6765536C696465722822726573697A6522297D2C323030297D292C652822';
+wwv_flow_api.g_varchar2_table(51) := '23222B61292E62696E6428227573657256616C7565734368616E676564222C66756E6374696F6E28652C74297B617065782E6974656D2864292E73657456616C7565287061727365496E74284D6174682E726F756E6428742E76616C7565732E6D696E29';
+wwv_flow_api.g_varchar2_table(52) := '29292C617065782E6974656D2844292E73657456616C7565287061727365496E74284D6174682E726F756E6428742E76616C7565732E6D61782929297D297D7D7D28617065782E6A5175657279293B';
+null;
+end;
+/
+begin
+wwv_flow_api.create_plugin_file(
+ p_id=>wwv_flow_api.id(1717741514023226)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
+,p_file_name=>'kalcRangeSlider-min.js'
+,p_mime_type=>'application/javascript'
+,p_file_charset=>'utf-8'
+,p_file_content=>wwv_flow_api.varchar2_to_blob(wwv_flow_api.g_varchar2_table)
 );
 end;
 /
@@ -1058,8 +1172,8 @@ end;
 /
 begin
 wwv_flow_api.create_plugin_file(
- p_id=>wwv_flow_api.id(93692984674649644679)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701626751879984836)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_file_name=>'jQAllRangeSliders-min.js'
 ,p_mime_type=>'application/javascript'
 ,p_file_charset=>'utf-8'
@@ -1593,8 +1707,8 @@ end;
 /
 begin
 wwv_flow_api.create_plugin_file(
- p_id=>wwv_flow_api.id(93692985125675645590)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701627202905985747)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_file_name=>'jQAllRangeSliders-withRuler-min.js'
 ,p_mime_type=>'application/javascript'
 ,p_file_charset=>'utf-8'
@@ -1671,8 +1785,8 @@ end;
 /
 begin
 wwv_flow_api.create_plugin_file(
- p_id=>wwv_flow_api.id(93692985852664651938)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701627929894992095)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_file_name=>'iThing.css'
 ,p_mime_type=>'text/css'
 ,p_file_charset=>'utf-8'
@@ -1698,8 +1812,8 @@ end;
 /
 begin
 wwv_flow_api.create_plugin_file(
- p_id=>wwv_flow_api.id(93693156643537584637)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701798720767924794)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_file_name=>'jQRangeSlider-MIT-License.txt'
 ,p_mime_type=>'text/plain'
 ,p_file_charset=>'utf-8'
@@ -1709,92 +1823,27 @@ end;
 /
 begin
 wwv_flow_api.g_varchar2_table := wwv_flow_api.empty_varchar2_table;
-wwv_flow_api.g_varchar2_table(1) := '2166756E6374696F6E28652C74297B6B616C635F72616E67655F736C696465725F73746172743D66756E6374696F6E28612C6E2C722C732C692C752C6F2C6C2C672C702C632C442C662C642C68297B737769746368286E297B636173652244415445223A';
-wwv_flow_api.g_varchar2_table(2) := '766172206D3D6E657720446174652C783D6E657720446174652C493D732E73706C697428222C22292C623D617065782E6974656D2863292E67657456616C756528292C593D617065782E6974656D2844292E67657456616C756528292C4D3D7061727365';
-wwv_flow_api.g_varchar2_table(3) := '496E7428622E737562737472696E6728302C3229292C773D7061727365496E7428592E737562737472696E6728302C3229293B7377697463682872297B636173652244442D4D4F4E2D59595959223A6C656674446174654D6F6E74683D492E696E646578';
-wwv_flow_api.g_varchar2_table(4) := '4F6628622E737562737472696E6728332C34292E746F55707065724361736528292B622E737562737472696E6728342C622E696E6465784F6628222D222C3329292E746F4C6F776572436173652829292C6C65667444617465596561723D706172736549';
-wwv_flow_api.g_varchar2_table(5) := '6E7428622E736C69636528622E696E6465784F6628222D222C33292B3129292C7269676874446174654D6F6E74683D492E696E6465784F6628592E737562737472696E6728332C34292E746F55707065724361736528292B592E737562737472696E6728';
-wwv_flow_api.g_varchar2_table(6) := '342C592E696E6465784F6628222D222C3329292E746F4C6F776572436173652829292C726967687444617465596561723D7061727365496E7428592E736C69636528592E696E6465784F6628222D222C33292B3129293B627265616B3B64656661756C74';
-wwv_flow_api.g_varchar2_table(7) := '3A6C656674446174654D6F6E74683D7061727365496E7428622E737562737472696E6728332C3529292D312C6C65667444617465596561723D7061727365496E7428622E736C696365283629292C7269676874446174654D6F6E74683D7061727365496E';
-wwv_flow_api.g_varchar2_table(8) := '7428592E737562737472696E6728332C3529292D312C726967687444617465596561723D7061727365496E7428592E736C696365283629297D766172206B3D6E65772044617465286C65667444617465596561722C6C656674446174654D6F6E74682C4D';
-wwv_flow_api.g_varchar2_table(9) := '292C763D6E6577204461746528726967687444617465596561722C7269676874446174654D6F6E74682C77293B6966286C213D7429737769746368286D3D752C783D6F2C6C297B63617365226D6F6E746873223A6D2E736574446174652831292C782E73';
-wwv_flow_api.g_varchar2_table(10) := '65744D6F6E7468286F2E6765744D6F6E746828292B31292C782E736574446174652831293B627265616B3B63617365227765656B73223A6D2E7365744461746528752E6765744461746528292B28672D752E676574446179282929292C782E7365744461';
-wwv_flow_api.g_varchar2_table(11) := '7465286F2E6765744461746528292B28672D6F2E67657444617928292B3729297D656C7365206D3D752C783D6F3B73776974636828225922213D667C7C643D3D747C7C2264617922213D642626226D6F6E746822213D642626227765656B22213D643F65';
-wwv_flow_api.g_varchar2_table(12) := '282223222B61292E6461746552616E6765536C69646572287B626F756E64733A7B6D696E3A6D2C6D61783A787D2C64656661756C7456616C7565733A7B6D696E3A6B2C6D61783A767D2C666F726D61747465723A66756E6374696F6E2865297B76617220';
-wwv_flow_api.g_varchar2_table(13) := '742C612C6E3D732E73706C697428222C22292C693D22222B652E67657446756C6C5965617228293B73776974636828743D652E6765744461746528293C31303F2230222B652E6765744461746528293A22222B652E6765744461746528292C613D652E67';
-wwv_flow_api.g_varchar2_table(14) := '65744D6F6E746828293C393F2230222B28652E6765744D6F6E746828292B31293A22222B28652E6765744D6F6E746828292B31292C72297B636173652244442D4D4F4E2D59595959223A72657475726E20742B222D222B6E5B7061727365496E74286129';
-wwv_flow_api.g_varchar2_table(15) := '2D315D2B222D222B693B64656661756C743A72657475726E20742B222D222B612B222D222B697D7D7D293A65282223222B61292E6461746552616E6765536C69646572287B626F756E64733A7B6D696E3A6D2C6D61783A787D2C64656661756C7456616C';
-wwv_flow_api.g_varchar2_table(16) := '7565733A7B6D696E3A6B2C6D61783A767D2C7363616C65733A5B7B66697273743A66756E6374696F6E2865297B76617220743D6E657720446174652865293B73776974636828742E736574486F75727328302C302C302C30292C64297B63617365226D6F';
-wwv_flow_api.g_varchar2_table(17) := '6E7468223A742E736574446174652831293B627265616B3B63617365227765656B223A742E7365744461746528742E6765744461746528292B28672D742E676574446179282929297D72657475726E20747D2C656E643A66756E6374696F6E2865297B72';
-wwv_flow_api.g_varchar2_table(18) := '657475726E20657D2C6E6578743A66756E6374696F6E2865297B76617220743D6E657720446174652865293B73776974636828742E736574486F75727328302C302C302C30292C64297B6361736522646179223A742E7365744461746528742E67657444';
-wwv_flow_api.g_varchar2_table(19) := '61746528292B31293B627265616B3B63617365226D6F6E7468223A742E7365744D6F6E746828742E6765744D6F6E746828292B31292C742E736574446174652831293B627265616B3B63617365227765656B223A742E7365744461746528742E67657444';
-wwv_flow_api.g_varchar2_table(20) := '61746528292B37297D72657475726E20747D2C6C6162656C3A66756E6374696F6E2865297B76617220742C613D6E657720446174652865293B7377697463682864297B6361736522646179223A743D612E6765744461746528293C31303F2230222B612E';
-wwv_flow_api.g_varchar2_table(21) := '6765744461746528293A22222B612E6765744461746528293B627265616B3B63617365226D6F6E7468223A743D495B612E6765744D6F6E746828295D3B627265616B3B63617365227765656B223A743D612E6765744461746528293C31303F2230222B61';
-wwv_flow_api.g_varchar2_table(22) := '2E6765744461746528293A22222B612E6765744461746528297D72657475726E20747D7D5D2C666F726D61747465723A66756E6374696F6E2865297B76617220742C612C6E3D732E73706C697428222C22292C693D22222B652E67657446756C6C596561';
-wwv_flow_api.g_varchar2_table(23) := '7228293B73776974636828743D652E6765744461746528293C31303F2230222B652E6765744461746528293A22222B652E6765744461746528292C613D652E6765744D6F6E746828293C393F2230222B28652E6765744D6F6E746828292B31293A22222B';
-wwv_flow_api.g_varchar2_table(24) := '28652E6765744D6F6E746828292B31292C72297B636173652244442D4D4F4E2D59595959223A72657475726E20742B222D222B6E5B7061727365496E742861292D315D2B222D222B693B64656661756C743A72657475726E20742B222D222B612B222D22';
-wwv_flow_api.g_varchar2_table(25) := '2B697D7D7D292C6C297B636173652264617973223A65282223222B61292E6461746552616E6765536C6964657228226F7074696F6E222C2273746570222C7B646179733A317D293B627265616B3B63617365226D6F6E746873223A65282223222B61292E';
-wwv_flow_api.g_varchar2_table(26) := '6461746552616E6765536C6964657228226F7074696F6E222C2273746570222C7B6D6F6E7468733A317D293B627265616B3B63617365227765656B73223A65282223222B61292E6461746552616E6765536C6964657228226F7074696F6E222C22737465';
-wwv_flow_api.g_varchar2_table(27) := '70222C7B7765656B733A317D297D65282223222B61292E706172656E7428292E706172656E7428292E6F6E2822726573697A65222C66756E6374696F6E28297B65282223222B61292E6461746552616E6765536C696465722822726573697A6522297D29';
-wwv_flow_api.g_varchar2_table(28) := '2C65282223745F427574746F6E5F6E6176436F6E74726F6C2229262665282223745F427574746F6E5F6E6176436F6E74726F6C22292E6F6E2822636C69636B222C66756E6374696F6E28297B73657454696D656F75742866756E6374696F6E28297B6528';
-wwv_flow_api.g_varchar2_table(29) := '2223222B61292E6461746552616E6765536C696465722822726573697A6522297D2C323030297D292C65282223222B61292E62696E6428227573657256616C7565734368616E676564222C66756E6374696F6E28652C74297B76617220612C6E2C732C75';
-wwv_flow_api.g_varchar2_table(30) := '2C6F3D692E73706C697428222C22292C6C3D742E76616C7565732E6D696E2C673D22222B6C2E67657446756C6C5965617228293B613D6C2E6765744461746528293C31303F2230222B6C2E6765744461746528293A22222B6C2E6765744461746528292C';
-wwv_flow_api.g_varchar2_table(31) := '6E3D6C2E6765744D6F6E746828293C393F2230222B286C2E6765744D6F6E746828292B31293A22222B286C2E6765744D6F6E746828292B31293B76617220703D742E76616C7565732E6D61782C663D22222B702E67657446756C6C5965617228293B7377';
-wwv_flow_api.g_varchar2_table(32) := '6974636828733D702E6765744461746528293C31303F2230222B702E6765744461746528293A22222B702E6765744461746528292C753D702E6765744D6F6E746828293C393F2230222B28702E6765744D6F6E746828292B31293A22222B28702E676574';
-wwv_flow_api.g_varchar2_table(33) := '4D6F6E746828292B31292C72297B636173652244442D4D4F4E2D59595959223A617065782E6974656D2863292E73657456616C756528612B222D222B6F5B7061727365496E74286E292D315D2E746F55707065724361736528292B222D222B67292C6170';
-wwv_flow_api.g_varchar2_table(34) := '65782E6974656D2844292E73657456616C756528732B222D222B6F5B7061727365496E742875292D315D2E746F55707065724361736528292B222D222B66293B627265616B3B64656661756C743A617065782E6974656D2863292E73657456616C756528';
-wwv_flow_api.g_varchar2_table(35) := '612B222D222B6E2B222D222B67292C617065782E6974656D2844292E73657456616C756528732B222D222B752B222D222B66297D7D293B627265616B3B6361736522494E5445474552223A76617220563D7061727365496E7428617065782E6974656D28';
-wwv_flow_api.g_varchar2_table(36) := '63292E67657456616C75652829293B56213D7426264E614E213D567C7C28563D7061727365496E74287529293B766172204E3D7061727365496E7428617065782E6974656D2844292E67657456616C75652829293B4E213D7426264E614E213D4E7C7C28';
-wwv_flow_api.g_varchar2_table(37) := '4E3D7061727365496E74286F29292C2259223D3D663F64213D7426264E614E213D7061727365496E74286429262668213D7426264E614E213D7061727365496E742868293F65282223222B61292E72616E6765536C69646572287B626F756E64733A7B6D';
-wwv_flow_api.g_varchar2_table(38) := '696E3A7061727365496E742875292C6D61783A7061727365496E74286F297D2C64656661756C7456616C7565733A7B6D696E3A562C6D61783A4E7D2C7363616C65733A5B7B66697273743A66756E6374696F6E2865297B72657475726E20657D2C6E6578';
-wwv_flow_api.g_varchar2_table(39) := '743A66756E6374696F6E2865297B72657475726E20652B7061727365496E742864297D2C73746F703A66756E6374696F6E2865297B72657475726E21317D2C6C6162656C3A66756E6374696F6E2865297B72657475726E20657D7D2C7B66697273743A66';
-wwv_flow_api.g_varchar2_table(40) := '756E6374696F6E2865297B72657475726E20657D2C6E6578743A66756E6374696F6E2865297B72657475726E2065257061727365496E742864293D3D3D7061727365496E742864292D313F652B287061727365496E742868292B31293A652B7061727365';
-wwv_flow_api.g_varchar2_table(41) := '496E742868297D2C73746F703A66756E6374696F6E2865297B72657475726E21317D2C6C6162656C3A66756E6374696F6E28297B72657475726E206E756C6C7D7D5D7D293A64213D7426264E614E213D7061727365496E74286429262665282223222B61';
-wwv_flow_api.g_varchar2_table(42) := '292E72616E6765536C69646572287B626F756E64733A7B6D696E3A7061727365496E742875292C6D61783A7061727365496E74286F297D2C64656661756C7456616C7565733A7B6D696E3A562C6D61783A4E7D2C7363616C65733A5B7B66697273743A66';
-wwv_flow_api.g_varchar2_table(43) := '756E6374696F6E2865297B72657475726E20657D2C6E6578743A66756E6374696F6E2865297B72657475726E20652B7061727365496E742864297D2C73746F703A66756E6374696F6E2865297B72657475726E21317D2C6C6162656C3A66756E6374696F';
-wwv_flow_api.g_varchar2_table(44) := '6E2865297B72657475726E20657D7D5D7D293A65282223222B61292E72616E6765536C69646572287B626F756E64733A7B6D696E3A7061727365496E742875292C6D61783A7061727365496E74286F297D2C64656661756C7456616C7565733A7B6D696E';
-wwv_flow_api.g_varchar2_table(45) := '3A562C6D61783A4E7D7D292C6C26262222213D6C262665282223222B61292E72616E6765536C6964657228226F7074696F6E222C2273746570222C7061727365496E74286C29292C65282223222B61292E706172656E7428292E706172656E7428292E6F';
-wwv_flow_api.g_varchar2_table(46) := '6E2822726573697A65222C66756E6374696F6E28297B65282223222B61292E72616E6765536C696465722822726573697A6522297D292C65282223745F427574746F6E5F6E6176436F6E74726F6C2229262665282223745F427574746F6E5F6E6176436F';
-wwv_flow_api.g_varchar2_table(47) := '6E74726F6C22292E6F6E2822636C69636B222C66756E6374696F6E28297B73657454696D656F75742866756E6374696F6E28297B65282223222B61292E72616E6765536C696465722822726573697A6522297D2C323030297D292C65282223222B61292E';
-wwv_flow_api.g_varchar2_table(48) := '62696E6428227573657256616C7565734368616E676564222C66756E6374696F6E28652C74297B617065782E6974656D2863292E73657456616C756528742E76616C7565732E6D696E292C617065782E6974656D2844292E73657456616C756528742E76';
-wwv_flow_api.g_varchar2_table(49) := '616C7565732E6D6178297D297D7D7D28617065782E6A5175657279293B';
-null;
-end;
-/
-begin
-wwv_flow_api.create_plugin_file(
- p_id=>wwv_flow_api.id(93693162561788495582)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
-,p_file_name=>'kalcRangeSlider-min.js'
-,p_mime_type=>'text/javascript'
-,p_file_charset=>'utf-8'
-,p_file_content=>wwv_flow_api.varchar2_to_blob(wwv_flow_api.g_varchar2_table)
-);
-end;
-/
-begin
-wwv_flow_api.g_varchar2_table := wwv_flow_api.empty_varchar2_table;
 wwv_flow_api.g_varchar2_table(1) := '4B414C20436F6E73756C74616E6379204C74642D2020415045582052616E676520536C6964657220506C7567696E202D2070726F766964656420756E64657220746865204D4954206C6963656E73650D0A55736573206A5152616E6765536C6964657220';
 wwv_flow_api.g_varchar2_table(2) := '76352E372E322028687474703A2F2F6768757373652E6769746875622E696F2F6A5152616E6765536C696465722F290D0A0D0A436F6E746163743A206B616C636F6E73756C74616E63796C746440686F746D61696C2E636F6D0D0A76657273696F6E2031';
-wwv_flow_api.g_varchar2_table(3) := '20286265746129202D2032382F31312F323031360D0A5465737465642077697468204F7261636C65204170706C69636174696F6E204578707265737320352E302E340D0A0D0A436F70797269676874202863292032303136204B414C20436F6E73756C74';
-wwv_flow_api.g_varchar2_table(4) := '616E6379204C74640D0A0D0A5065726D697373696F6E20697320686572656279206772616E7465642C2066726565206F66206368617267652C20746F20616E7920706572736F6E206F627461696E696E67206120636F70790D0A6F66207468697320736F';
-wwv_flow_api.g_varchar2_table(5) := '66747761726520616E64206173736F63696174656420646F63756D656E746174696F6E2066696C657320287468652022536F66747761726522292C20746F206465616C0D0A696E2074686520536F66747761726520776974686F75742072657374726963';
-wwv_flow_api.g_varchar2_table(6) := '74696F6E2C20696E636C7564696E6720776974686F7574206C696D69746174696F6E20746865207269676874730D0A746F207573652C20636F70792C206D6F646966792C206D657267652C207075626C6973682C20646973747269627574652C20737562';
-wwv_flow_api.g_varchar2_table(7) := '6C6963656E73652C20616E642F6F722073656C6C0D0A636F70696573206F662074686520536F6674776172652C20616E6420746F207065726D697420706572736F6E7320746F2077686F6D2074686520536F6674776172652069730D0A6675726E697368';
-wwv_flow_api.g_varchar2_table(8) := '656420746F20646F20736F2C207375626A65637420746F2074686520666F6C6C6F77696E6720636F6E646974696F6E733A0D0A0D0A5468652061626F766520636F70797269676874206E6F7469636520616E642074686973207065726D697373696F6E20';
-wwv_flow_api.g_varchar2_table(9) := '6E6F74696365207368616C6C20626520696E636C7564656420696E20616C6C0D0A636F70696573206F72207375627374616E7469616C20706F7274696F6E73206F662074686520536F6674776172652E0D0A0D0A54484520534F46545741524520495320';
-wwv_flow_api.g_varchar2_table(10) := '50524F564944454420224153204953222C20574954484F55542057415252414E5459204F4620414E59204B494E442C2045585052455353204F520D0A494D504C4945442C20494E434C5544494E4720425554204E4F54204C494D4954454420544F205448';
-wwv_flow_api.g_varchar2_table(11) := '452057415252414E54494553204F46204D45524348414E544142494C4954592C0D0A4649544E45535320464F52204120504152544943554C415220505552504F534520414E44204E4F4E494E4652494E47454D454E542E20494E204E4F204556454E5420';
-wwv_flow_api.g_varchar2_table(12) := '5348414C4C205448450D0A415554484F5253204F5220434F5059524947485420484F4C44455253204245204C4941424C4520464F5220414E5920434C41494D2C2044414D41474553204F52204F544845520D0A4C494142494C4954592C20574845544845';
-wwv_flow_api.g_varchar2_table(13) := '5220494E20414E20414354494F4E204F4620434F4E54524143542C20544F5254204F52204F54484552574953452C2041524953494E472046524F4D2C0D0A4F5554204F46204F5220494E20434F4E4E454354494F4E20574954482054484520534F465457';
-wwv_flow_api.g_varchar2_table(14) := '415245204F522054484520555345204F52204F54484552204445414C494E475320494E205448450D0A534F4654574152452E';
+wwv_flow_api.g_varchar2_table(3) := '2E322D2031372F30312F323031370D0A5465737465642077697468204F7261636C65204170706C69636174696F6E204578707265737320352E302E340D0A0D0A436F70797269676874202863292032303137204B414C20436F6E73756C74616E6379204C';
+wwv_flow_api.g_varchar2_table(4) := '74640D0A0D0A5065726D697373696F6E20697320686572656279206772616E7465642C2066726565206F66206368617267652C20746F20616E7920706572736F6E206F627461696E696E67206120636F70790D0A6F66207468697320736F667477617265';
+wwv_flow_api.g_varchar2_table(5) := '20616E64206173736F63696174656420646F63756D656E746174696F6E2066696C657320287468652022536F66747761726522292C20746F206465616C0D0A696E2074686520536F66747761726520776974686F7574207265737472696374696F6E2C20';
+wwv_flow_api.g_varchar2_table(6) := '696E636C7564696E6720776974686F7574206C696D69746174696F6E20746865207269676874730D0A746F207573652C20636F70792C206D6F646966792C206D657267652C207075626C6973682C20646973747269627574652C207375626C6963656E73';
+wwv_flow_api.g_varchar2_table(7) := '652C20616E642F6F722073656C6C0D0A636F70696573206F662074686520536F6674776172652C20616E6420746F207065726D697420706572736F6E7320746F2077686F6D2074686520536F6674776172652069730D0A6675726E697368656420746F20';
+wwv_flow_api.g_varchar2_table(8) := '646F20736F2C207375626A65637420746F2074686520666F6C6C6F77696E6720636F6E646974696F6E733A0D0A0D0A5468652061626F766520636F70797269676874206E6F7469636520616E642074686973207065726D697373696F6E206E6F74696365';
+wwv_flow_api.g_varchar2_table(9) := '207368616C6C20626520696E636C7564656420696E20616C6C0D0A636F70696573206F72207375627374616E7469616C20706F7274696F6E73206F662074686520536F6674776172652E0D0A0D0A54484520534F4654574152452049532050524F564944';
+wwv_flow_api.g_varchar2_table(10) := '454420224153204953222C20574954484F55542057415252414E5459204F4620414E59204B494E442C2045585052455353204F520D0A494D504C4945442C20494E434C5544494E4720425554204E4F54204C494D4954454420544F205448452057415252';
+wwv_flow_api.g_varchar2_table(11) := '414E54494553204F46204D45524348414E544142494C4954592C0D0A4649544E45535320464F52204120504152544943554C415220505552504F534520414E44204E4F4E494E4652494E47454D454E542E20494E204E4F204556454E54205348414C4C20';
+wwv_flow_api.g_varchar2_table(12) := '5448450D0A415554484F5253204F5220434F5059524947485420484F4C44455253204245204C4941424C4520464F5220414E5920434C41494D2C2044414D41474553204F52204F544845520D0A4C494142494C4954592C205748455448455220494E2041';
+wwv_flow_api.g_varchar2_table(13) := '4E20414354494F4E204F4620434F4E54524143542C20544F5254204F52204F54484552574953452C2041524953494E472046524F4D2C0D0A4F5554204F46204F5220494E20434F4E4E454354494F4E20574954482054484520534F465457415245204F52';
+wwv_flow_api.g_varchar2_table(14) := '2054484520555345204F52204F54484552204445414C494E475320494E205448450D0A534F4654574152452E';
 null;
 end;
 /
 begin
 wwv_flow_api.create_plugin_file(
- p_id=>wwv_flow_api.id(93693163810432600482)
-,p_plugin_id=>wwv_flow_api.id(93692933209815378626)
+ p_id=>wwv_flow_api.id(93701805887662940639)
+,p_plugin_id=>wwv_flow_api.id(93701575287045718783)
 ,p_file_name=>'kalcRangeSlider-MIT-License.txt'
 ,p_mime_type=>'text/plain'
 ,p_file_charset=>'utf-8'
