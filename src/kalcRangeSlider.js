@@ -4,7 +4,7 @@
    * Uses jQRangeSlider v5.7.2 (http://ghusse.github.io/jQRangeSlider/)
    * 
    * Contact: kalconsultancyltd@hotmail.com
-   * @version 1.1
+   * @version 1.2
    * Tested on Oracle Application Express 5.0.4 and Universal Theme
    *
    * @license
@@ -39,7 +39,8 @@
     sliderMax,
     sliderStep,
     weekStartDay,
-    decimalPlaces,  //Placeholder for a potential future range slider type of DECIMAL
+    formatInteger,
+    thousandSeparator,
     minPageItem,
     maxPageItem,
     includeRuler,
@@ -49,7 +50,7 @@
     switch(sliderType)
     {
       case 'DATE':
-        // Date sliders can have format DD-MM-YYYY or DD-MON-YYYY in version 1
+        // Date sliders can have format DD-MM-YYYY or DD-MON-YYYY
         var calcSliderMin = new Date(), calcSliderMax = new Date(); // initialise the slider bounds variables as dates
         var monthList = monthLabels.split(',');
         var minPageItemVal = apex.item(minPageItem).getValue(); //get the initial Min marker value from the apex item
@@ -244,7 +245,13 @@
                         first: function(val){ return val; },
                         next: function(val){ return val + parseInt(majorScale); },
                         stop: function(val){ return false; },
-                        label: function(val){ return val; }
+                        label: function(val){
+                          if(formatInteger=='Y'){
+                            return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, thousandSeparator);
+                          } else {
+                            return val;
+                          }
+                        }
                       },
                       { // Secondary scale
                         first: function(val){ return val; },
@@ -256,7 +263,14 @@
                         },
                         stop: function(val){ return false; },
                         label: function(){ return null; }
-                      }]
+                      }],
+              formatter: function(val){
+                if(formatInteger=='Y'){
+                  return Math.round(val).toString().replace(/\B(?=(\d{3})+(?!\d))/g, thousandSeparator);
+                } else {
+                  return val;
+                }
+              }
             });
           } else if(majorScale!=undefined&&parseInt(majorScale)!=NaN){
             $('#'+sliderId).rangeSlider({
@@ -266,8 +280,21 @@
                         first: function(val){ return val; },
                         next: function(val){ return val + parseInt(majorScale); },
                         stop: function(val){ return false; },
-                        label: function(val){ return val; }
-                      }]
+                        label: function(val){
+                          if(formatInteger=='Y'){
+                            return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, thousandSeparator);
+                          } else {
+                            return val;
+                          }
+                        }
+                      }],
+              formatter: function(val){
+                if(formatInteger=='Y'){
+                  return Math.round(val).toString().replace(/\B(?=(\d{3})+(?!\d))/g, thousandSeparator);
+                } else {
+                  return val;
+                }
+              }
             });
           }
         } else {
@@ -293,8 +320,9 @@
 
         // Update the apex items when the user changes the slider
         $('#'+sliderId).bind("userValuesChanged", function(e, data){
-          apex.item(minPageItem).setValue(data.values.min);
-          apex.item(maxPageItem).setValue(data.values.max);
+          //v1.2 large scales occasionally set the step value as decimal - round values
+          apex.item(minPageItem).setValue(parseInt(Math.round(data.values.min)));  
+          apex.item(maxPageItem).setValue(parseInt(Math.round(data.values.max)));
         });
     }
   }
