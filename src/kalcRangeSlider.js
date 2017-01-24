@@ -8,7 +8,7 @@
    * Tested on Oracle Application Express 5.0.4 and Universal Theme
    *
    * @license
-   * Copyright (c) 2016 KAL Consultancy Ltd
+   * Copyright (c) 2017 KAL Consultancy Ltd
    *
    * Permission is hereby granted, free of charge, to any person obtaining a copy
    * of this software and associated documentation files (the "Software"), to deal
